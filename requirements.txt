@@ -4,3 +4,4 @@ paddleocr
 pandas
 numpy
 Pillow
+opencv-python-headless
