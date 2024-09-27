@@ -1,22 +1,18 @@
 import streamlit as st
 import cv2
-import pytesseract
 import pandas as pd
 import numpy as np
 import re
 import os
 from PIL import Image
+from paddleocr import PaddleOCR
 
-# Streamlit configuration for Tesseract path
-if 'TESSERACT_CMD' not in st.session_state:
-  st.session_state.TESSERACT_CMD = st.text_input(
-      "Path to Tesseract executable:",
-      value=r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-      help="Enter the full path to your Tesseract executable"
-  )
+# Initialize PaddleOCR
+@st.cache_resource
+def load_ocr():
+  return PaddleOCR(use_angle_cls=True, lang='en')
 
-# Set the Tesseract command
-pytesseract.pytesseract.tesseract_cmd = st.session_state.TESSERACT_CMD
+ocr = load_ocr()
 
 # Function to preprocess the image for better OCR performance
 def preprocess_image(image):
@@ -31,20 +27,18 @@ def preprocess_image(image):
 
   return thresh
 
-# Function to extract text from an image using pytesseract
+# Function to extract text from an image using PaddleOCR
 def extract_text_from_image(image):
   # Preprocess the image
   processed_image = preprocess_image(image)
   
-  # Convert OpenCV image to PIL Image for pytesseract
-  pil_image = Image.fromarray(processed_image)
-
   try:
-      # Extract text using pytesseract
-      text = pytesseract.image_to_string(pil_image)
+      # Extract text using PaddleOCR
+      result = ocr.ocr(processed_image)
+      text = ' '.join([line[1][0] for line in result])
       return text
-  except pytesseract.TesseractNotFoundError:
-      st.error("Tesseract executable not found. Please check the path and try again.")
+  except Exception as e:
+      st.error(f"Error in OCR: {str(e)}")
       return None
 
 # Function to parse relevant information from extracted text
